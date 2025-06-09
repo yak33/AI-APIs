@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传测试 - AI模型接口测试平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-back">
+            <a href="index.html">← 返回主页</a>
+        </div>
+
+        <header>
+            <h1>📁 文件上传处理测试</h1>
+            <p>测试多文件上传、OCR识别、格式化处理和业务逻辑校验功能</p>
+        </header>
+
+        <div class="test-container">
+            <form id="uploadForm" class="test-form">
+                <div class="form-group">
+                    <label for="model_provider">模型提供商 (可选)</label>
+                    <select id="model_provider" name="model_provider">
+                        <option value="doubao">doubao (默认)</option>
+                        <option value="openai">openai</option>
+                        <option value="claude">claude</option>
+                        <option value="qwen">qwen</option>
+                    </select>
+                    <small style="color: #666; font-size: 0.9rem;">选择用于处理的AI模型提供商</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="files">选择文件 (必填)</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="files" name="files" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.zip,.rar" style="display: none;">
+                        <div class="file-input" onclick="document.getElementById('files').click()">
+                            点击选择文件或拖拽文件到此处
+                        </div>
+                    </div>
+                    <small style="color: #666; font-size: 0.9rem;">支持多文件上传，包括PDF、Word文档、图片和压缩文件</small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" onclick="testUpload()">开始上传并处理</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('uploadForm').reset(); updateFileInputDisplay(); document.getElementById('uploadResult').style.display='none'">重置表单</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="uploadResult" class="result-container" style="display: none;">
+            <h3>处理结果</h3>
+            <div class="result-content"></div>
+        </div>
+
+        <div class="api-info">
+            <h2>接口说明</h2>
+            <div class="server-info">
+                <p><strong>接口地址:</strong> <code>POST /upload</code></p>
+                <p><strong>功能描述:</strong> 上传多个文件，支持压缩文件，并对文件内容进行OCR识别、格式化处理以及业务逻辑校验，最终返回合并后的结果</p>
+                <p><strong>支持格式:</strong> PDF、Word文档、图片文件、压缩文件等</p>
+                <p><strong>返回数据:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>detail_ocr</code>: OCR识别的详细结果</li>
+                    <li><code>detail_format</code>: 格式化处理的详细结果</li>
+                    <li><code>result</code>: 合并后的去重结果</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="api-info">
+            <h2>使用示例</h2>
+            <div class="server-info">
+                <p><strong>示例场景:</strong></p>
+                <ol style="margin-left: 20px; margin-top: 10px;">
+                    <li>上传包含文字的PDF文档，系统会进行OCR识别提取文字内容</li>
+                    <li>上传Word文档，系统会提取并格式化文档内容</li>
+                    <li>上传图片文件，系统会识别图片中的文字信息</li>
+                    <li>上传压缩文件，系统会解压并处理其中的文档</li>
+                </ol>
+                <p style="margin-top: 15px;"><strong>注意事项:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>文件大小建议不超过10MB</li>
+                    <li>支持批量上传多个文件</li>
+                    <li>处理时间根据文件大小和数量而定</li>
+                    <li>确保网络连接稳定</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 AI模型接口测试平台. 所有权利保留.</p>
+        </footer>
+    </div>
+
+    <script src="js/api-test.js"></script>
+</body>
+</html>

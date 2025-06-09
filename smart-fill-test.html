@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申报要素智能填写测试 - AI模型接口测试平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-back">
+            <a href="index.html">← 返回主页</a>
+        </div>
+
+        <header>
+            <h1>📝 申报要素智能填写测试</h1>
+            <p>测试智能识别并自动填写申报要素功能</p>
+        </header>
+
+        <div class="test-container">
+            <form id="smartFillForm" class="test-form">
+                <div class="form-group">
+                    <label for="text">申报要素描述 (必填)</label>
+                    <textarea id="text" name="text" placeholder="请输入商品描述信息，例如：盛放调料的盒子，PC+ABS+PP 无型号 无牌 不享惠" required></textarea>
+                    <small style="color: #666; font-size: 0.9rem;">输入需要进行申报要素识别的商品描述文本</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="split_rules">申报要素拆分规则 (必填)</label>
+                    <textarea id="split_rules" name="split_rules" placeholder="请输入拆分规则，例如：0:品牌类型;1:出口享惠情况;2:用途;3:加工工艺;4:是否配定剂量;5:是否零售包装;6:成分;7:来源;8:品牌（中文或外文名称）;9:型号;10:包装规格;11:GTIN;12:CAS;13:其他;" required></textarea>
+                    <small style="color: #666; font-size: 0.9rem;">定义申报要素的拆分规则，格式为：序号:要素名称;序号:要素名称;...</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="sbysRequired">申报要素必填项 (必填)</label>
+                    <input type="text" id="sbysRequired" name="sbysRequired" placeholder="请输入必填项标识，例如：11111110000000" required>
+                    <small style="color: #666; font-size: 0.9rem;">标识哪些申报要素是必填的，1表示必填，0表示可选，按拆分规则顺序对应</small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" onclick="testSmartFill()">开始智能填写</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('smartFillForm').reset(); document.getElementById('smartFillResult').style.display='none'">重置表单</button>
+                    <button type="button" class="btn btn-secondary" onclick="loadExample()">加载示例数据</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="smartFillResult" class="result-container" style="display: none;">
+            <h3>智能填写结果</h3>
+            <div class="result-content"></div>
+        </div>
+
+        <div class="api-info">
+            <h2>接口说明</h2>
+            <div class="server-info">
+                <p><strong>接口地址:</strong> <code>POST /api/smart-fill</code></p>
+                <p><strong>功能描述:</strong> 根据商品描述文本和拆分规则，智能识别并自动填写申报要素</p>
+                <p><strong>请求参数:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>text</code>: 申报要素描述文本（必填）</li>
+                    <li><code>split_rules</code>: 申报要素拆分规则（必填）</li>
+                    <li><code>sbysRequired</code>: 申报要素必填项标识（必填）</li>
+                </ul>
+                <p><strong>返回数据:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>result</code>: 按规则合并的结果字符串</li>
+                    <li><code>split_result</code>: 拆分后的详细结果对象</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="api-info">
+            <h2>使用说明</h2>
+            <div class="server-info">
+                <p><strong>申报要素描述:</strong></p>
+                <p>输入需要进行申报要素识别的商品描述文本，系统会根据文本内容智能提取相关信息。</p>
+                
+                <p style="margin-top: 15px;"><strong>拆分规则格式:</strong></p>
+                <p>使用分号分隔不同要素，每个要素格式为"序号:要素名称"，例如：</p>
+                <code style="display: block; margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    0:品牌类型;1:出口享惠情况;2:用途;3:加工工艺;4:是否配定剂量;5:是否零售包装;6:成分;7:来源;8:品牌（中文或外文名称）;9:型号;10:包装规格;11:GTIN;12:CAS;13:其他;
+                </code>
+                
+                <p style="margin-top: 15px;"><strong>必填项标识格式:</strong></p>
+                <p>使用数字字符串标识每个申报要素是否必填，按拆分规则的顺序对应：</p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li><code>1</code>: 表示该项为必填</li>
+                    <li><code>0</code>: 表示该项为可选</li>
+                    <li>例如：<code>11111110000000</code> 表示前7项必填，后7项可选</li>
+                </ul>
+                
+                <p style="margin-top: 15px;"><strong>常见申报要素:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>品牌类型：有牌/无牌</li>
+                    <li>出口享惠情况：享惠/不享惠</li>
+                    <li>用途：商品的具体用途描述</li>
+                    <li>成分：商品的材质或成分</li>
+                    <li>型号：商品型号信息</li>
+                    <li>品牌：具体品牌名称</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 AI模型接口测试平台. 所有权利保留.</p>
+        </footer>
+    </div>
+
+    <script src="js/api-test.js"></script>
+    <script>
+        // 加载示例数据
+        function loadExample() {
+            document.getElementById('text').value = '盛放调料的盒子，PC+\nABS+PP 无型号 无牌 不享惠';
+            document.getElementById('split_rules').value = '0:品牌类型;1:出口享惠情况;2:用途;3:加工工艺;4:是否配定剂量;5:是否零售包装;6:成分;7:来源;8:品牌（中文或外文名称）;9:型号;10:包装规格;11:GTIN;12:CAS;13:其他;';
+            document.getElementById('sbysRequired').value = '11111110000000';
+        }
+    </script>
+</body>
+</html>

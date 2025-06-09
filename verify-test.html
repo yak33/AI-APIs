@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档逻辑校验测试 - AI模型接口测试平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-back">
+            <a href="index.html">← 返回主页</a>
+        </div>
+
+        <header>
+            <h1>✅ 文档逻辑校验测试</h1>
+            <p>测试文档内容逻辑校验功能，检查数据一致性和完整性</p>
+        </header>
+
+        <div class="test-container">
+            <form id="verifyForm" class="test-form">
+                <div class="form-group">
+                    <label for="verifyText">文档内容 (必填)</label>
+                    <textarea id="verifyText" name="text" placeholder="请输入需要进行逻辑校验的格式化识别结果..." required style="min-height: 200px;"></textarea>
+                    <small style="color: #666; font-size: 0.9rem;">输入经过OCR识别和格式化处理后的文档内容，系统将对其进行逻辑校验</small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" onclick="testVerify()">开始逻辑校验</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('verifyForm').reset(); document.getElementById('verifyResult').style.display='none'">重置表单</button>
+                    <button type="button" class="btn btn-secondary" onclick="loadVerifyExample()">加载示例数据</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="verifyResult" class="result-container" style="display: none;">
+            <h3>逻辑校验结果</h3>
+            <div class="result-content"></div>
+        </div>
+
+        <div class="api-info">
+            <h2>接口说明</h2>
+            <div class="server-info">
+                <p><strong>接口地址:</strong> <code>POST /api/verify</code></p>
+                <p><strong>功能描述:</strong> 对文档内容进行逻辑校验，检查数据的一致性、完整性和合理性</p>
+                <p><strong>请求参数:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>text</code>: 格式化的识别结果（必填）</li>
+                </ul>
+                <p><strong>返回数据:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>校验结果数组，每个元素包含：</li>
+                    <li><code>file_name</code>: 文件名称</li>
+                    <li><code>error</code>: 错误信息（如果有）</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="api-info">
+            <h2>校验规则说明</h2>
+            <div class="server-info">
+                <p><strong>系统会检查以下内容:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><strong>数据一致性:</strong> 检查不同文档间相同字段的数据是否一致</li>
+                    <li><strong>数量匹配:</strong> 验证商品数量、净重、毛重等数值的匹配关系</li>
+                    <li><strong>逻辑合理性:</strong> 检查毛重是否大于净重等逻辑关系</li>
+                    <li><strong>信息完整性:</strong> 验证必要信息是否完整</li>
+                    <li><strong>格式规范性:</strong> 检查数据格式是否符合要求</li>
+                </ul>
+                
+                <p style="margin-top: 15px;"><strong>常见错误类型:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>境内发货人信息不一致</li>
+                    <li>商品信息项数不匹配</li>
+                    <li>净重、毛重数据缺失或不匹配</li>
+                    <li>单价信息存在差异</li>
+                    <li>数量计算错误</li>
+                </ul>
+                
+                <p style="margin-top: 15px;"><strong>输入数据格式:</strong></p>
+                <p>请输入经过文件上传接口处理后的格式化结果，系统会根据这些数据进行逻辑校验分析。</p>
+            </div>
+        </div>
+
+        <div class="api-info">
+            <h2>使用场景</h2>
+            <div class="server-info">
+                <p><strong>适用于以下文档校验:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>进出口贸易单据校验</li>
+                    <li>发票与装箱单数据一致性检查</li>
+                    <li>报关单据逻辑校验</li>
+                    <li>商品信息完整性验证</li>
+                    <li>多文档间数据匹配检查</li>
+                </ul>
+                
+                <p style="margin-top: 15px;"><strong>校验流程:</strong></p>
+                <ol style="margin-left: 20px; margin-top: 5px;">
+                    <li>上传并处理文档（使用文件上传接口）</li>
+                    <li>获取格式化的识别结果</li>
+                    <li>使用本接口进行逻辑校验</li>
+                    <li>根据校验结果修正文档问题</li>
+                </ol>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 AI模型接口测试平台. 所有权利保留.</p>
+        </footer>
+    </div>
+
+    <script src="js/api-test.js"></script>
+    <script>
+        // 加载示例数据
+        function loadVerifyExample() {
+            const exampleText = `文档1: BGD ETA TS2506ETA003 B.xlsx
+境内发货人: 苏州方博贸易有限公司3215960NJ5
+商品信息: 
+- 9件套孔锯, 单价: 12.92, 数量: 100
+- 钻头套装, 单价: 8.50, 数量: 50
+净重: 231kg
+毛重: 250kg
+
+文档2: INV TS2506ETA003 BG B.xlsx
+境内发货人: SUZHOU TOLSEN TOOLS CO.,LTD NO.198,HUASHAN ROAD,JINFENG TOWN,ZHANGJIAGANG CITY,JIANGSU PROVINCE,P.R.OF CHINA
+商品信息:
+- 9PCS BI-METAL HOLE SAW SET, 单价: USD12.919999999999998, 数量: 100
+净重: 231kg
+毛重: 250kg
+
+文档3: PL TS2506ETA003 BG B.xlsx
+境内发货人: SUZHOU TOLSEN TOOLS CO.,LTD NO.198,HUASHAN ROAD,JINFENG TOWN,ZHANGJIAGANG CITY,JIANGSU PROVINCE,P.R.OF CHINA
+商品信息:
+- 9PCS BI-METAL HOLE SAW SET, 数量: 100
+净重: 231+57+237+197+212+2+23+185+83+18+38+10+44+12+1285+31+76+416
+毛重: 209+51+217+191+203+1+22+172+78+16+36+8+43+11+1144+29+71+394`;
+            
+            document.getElementById('verifyText').value = exampleText;
+        }
+    </script>
+</body>
+</html>
