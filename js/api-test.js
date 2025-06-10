@@ -181,6 +181,7 @@ async function callAPI(endpoint, formData, method = "POST") {
     const headers = {
       timestamp: authHeaders.timestamp,
       sign: authHeaders.sign,
+      'x-vercel-skip-middleware': '1',
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -191,6 +192,48 @@ async function callAPI(endpoint, formData, method = "POST") {
     });
 
     if (!response.ok) {
+      throw new Error(`HTTP错误! 状态: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// 带超时的API调用函数
+async function callAPIWithTimeout(endpoint, formData, timeout = 7200000, method = "POST") {
+  try {
+    const authHeaders = getAuthHeaders();
+    const headers = {
+      timestamp: authHeaders.timestamp,
+      sign: authHeaders.sign,
+      'x-vercel-skip-middleware': '1',
+    };
+
+    // 创建超时Promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`请求超时 (${timeout/1000}秒)。这可能是因为AI模型处理时间较长，请稍后重试。`));
+      }, timeout);
+    });
+
+    // 创建请求Promise
+    const fetchPromise = fetch(`${API_BASE_URL}${endpoint}`, {
+      method: method,
+      mode: 'cors',
+      headers: headers,
+      body: formData,
+    });
+
+    // 使用Promise.race来实现超时控制
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (!response.ok) {
+      if (response.status === 502) {
+        throw new Error(`服务器网关错误 (502)。这通常是因为处理时间过长导致的。建议：\n1. 减少输入文本长度\n2. 简化申报要素拆分规则\n3. 稍后重试`);
+      }
       throw new Error(`HTTP错误! 状态: ${response.status}`);
     }
 
@@ -338,6 +381,18 @@ function showLoading(containerId) {
   container.style.display = "block";
 }
 
+// 显示带超时提示的加载状态
+function showLoadingWithTimeout(containerId, timeout = 7200000) {
+  const container = document.getElementById(containerId);
+  const resultContent = container.querySelector(".result-content");
+
+  resultContent.className = "result-content loading";
+  resultContent.textContent = `正在处理请求，请稍候...
+
+注意：此请求可能需要较长时间（最多${timeout/1000}秒），请耐心等待。`;
+  container.style.display = "block";
+}
+
 // 文件上传测试
 async function testUpload() {
   const form = document.getElementById("uploadForm");
@@ -377,9 +432,10 @@ async function testSmartFill() {
     return;
   }
 
-  showLoading("smartFillResult");
+  // 设置超时处理
+  showLoadingWithTimeout("smartFillResult", 7200000); // 2小时超时
 
-  const result = await callAPI("/api/smart-fill", formData);
+  const result = await callAPIWithTimeout("/api/smart-fill", formData, 7200000); // 2小时超时
   displayResult("smartFillResult", result);
 }
 
