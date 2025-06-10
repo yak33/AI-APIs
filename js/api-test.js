@@ -484,7 +484,7 @@ async function testSmartFill() {
       sbysRequired: sbysRequired
     };
 
-    const endpoint = "/extract_and_fill";
+    const endpoint = "/smart-fill";
     const url = `${API_BASE_URL}${endpoint}`;
     const authHeaders = getAuthHeaders();
     const headers = {
