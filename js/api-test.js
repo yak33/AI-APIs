@@ -6,7 +6,9 @@
  * @FilePath: \AI-APIs\js\api-test.js
  */
 // API基础配置
-const API_BASE_URL = "/api";
+// 自动判断环境，本地测试时使用完整的API地址，线上环境使用相对路径
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const API_BASE_URL = isLocal ? "http://124.128.244.171:8000/api" : "/api";
 const SECRET_KEY =
   "5a8a7b07becf6fa4cd4db280f2979a1a7e5f20b18b6e99a86a8d8748f124d0d0";
 
@@ -397,6 +399,7 @@ function showLoadingWithTimeout(containerId, timeout = 7200000) {
 async function testUpload() {
   const form = document.getElementById("uploadForm");
   const formData = new FormData(form);
+  const resultContainerId = "uploadResult";
 
   // 检查是否选择了文件
   const fileInput = document.getElementById("files");
@@ -405,10 +408,49 @@ async function testUpload() {
     return;
   }
 
-  showLoading("uploadResult");
+  showLoadingWithTimeout(resultContainerId);
 
-  const result = await callAPI("/upload", formData);
-  displayResult("uploadResult", result);
+  try {
+    // 为 upload 单独处理URL，因为它不遵循 /api 的前缀规则
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const uploadUrl = isLocal ? 'http://124.128.244.171:8000/upload' : '/upload';
+
+    const authHeaders = getAuthHeaders();
+    const headers = {
+      'timestamp': authHeaders.timestamp,
+      'sign': authHeaders.sign,
+      'x-vercel-skip-middleware': '1',
+    };
+
+    const timeout = 7200000; // 2小时超时
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`请求超时 (${timeout / 1000}秒)。这可能是因为AI模型处理时间较长，请稍后重试。`));
+      }, timeout);
+    });
+
+    const fetchPromise = fetch(uploadUrl, {
+      method: 'POST',
+      mode: 'cors',
+      headers: headers,
+      body: formData,
+    });
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (!response.ok) {
+      if (response.status === 502) {
+        throw new Error(`服务器网关错误 (502)。这通常是因为处理时间过长导致的。建议：\n1. 减少上传文件的大小或数量\n2. 检查服务器状态\n3. 稍后重试`);
+      }
+      throw new Error(`HTTP错误! 状态: ${response.status}`);
+    }
+
+    const resultData = await response.json();
+    displayResult(resultContainerId, { success: true, data: resultData });
+
+  } catch (error) {
+    displayResult(resultContainerId, { success: false, error: error.message });
+  }
 }
 
 // 申报要素智能填写测试
