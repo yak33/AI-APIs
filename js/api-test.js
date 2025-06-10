@@ -6,7 +6,7 @@
  * @FilePath: \AI-APIs\js\api-test.js
  */
 // API基础配置
-const API_BASE_URL = "http://124.128.244.171:8000";
+const API_BASE_URL = "/api";
 const SECRET_KEY =
   "5a8a7b07becf6fa4cd4db280f2979a1a7e5f20b18b6e99a86a8d8748f124d0d0";
 
