@@ -525,26 +525,96 @@ async function testSmartFill() {
 
 // 文档逻辑校验测试
 async function testVerify() {
-  const form = document.getElementById("verifyForm");
-  const formData = new FormData(form);
-  const resultContainerId = "verifyResult";
+    const textInput = document.getElementById('verifyText');
+    const resultContainer = document.getElementById('verifyResult');
+    const resultContent = resultContainer.querySelector('.result-content');
 
-  // 验证必填字段
-  const text = document.getElementById("verifyText").value.trim();
-  if (!text) {
-    alert("请填写文档内容");
-    return;
-  }
+    const jsonString = textInput.value.trim();
 
-  showLoadingWithTimeout(resultContainerId);
+    // 检查输入是否为空
+    if (!jsonString) {
+        alert('请输入需要校验的文档内容！');
+        return;
+    }
 
-  try {
-    const endpoint = "/verify";
-    const result = await callAPIWithTimeout(endpoint, formData, resultContainerId);
-    displayResult(resultContainerId, result);
-  } catch (error) {
-    displayResult(resultContainerId, { success: false, error: error.message });
-  }
+    // 准备显示结果
+    resultContainer.style.display = 'block';
+    resultContent.innerHTML = '<p>正在进行逻辑校验，请稍候...</p>';
+
+    let requestBody;
+    try {
+        // 尝试解析JSON，确保格式正确
+        JSON.parse(jsonString);
+        // 直接使用原始字符串作为请求体
+        requestBody = jsonString;
+    } catch (e) {
+        // 如果JSON解析失败，提示用户
+        resultContent.innerHTML = `<p style="color: red;">❌ 格式错误: 输入的不是一个有效的JSON字符串。请检查您的输入。</p><pre>${e.message}</pre>`;
+        return;
+    }
+
+    try {
+        const authHeaders = getAuthHeaders();
+        const headers = {
+            'Content-Type': 'application/json',
+            'timestamp': authHeaders.timestamp,
+            'sign': authHeaders.sign,
+            'x-vercel-skip-middleware': '1'
+        };
+
+        // 发送带超时的fetch请求
+        const timeout = 7200000; // 2小时超时
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error(`请求超时 (${timeout / 1000}秒)。`));
+            }, timeout);
+        });
+
+        const endpoint = '/verify';
+        const url = `${API_BASE_URL}${endpoint}`;
+
+        const fetchPromise = fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: requestBody,
+        });
+
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+        // 检查网络响应是否成功
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP 错误! 状态: ${response.status}, 信息: ${errorText}`);
+        }
+
+        // 解析后端返回的JSON结果
+        const result = await response.json();
+
+        // 根据返回结果构建并显示HTML
+        let html = '<h4>校验完成</h4>';
+        if (result.errors && result.errors.length > 0) {
+            html += '<p>发现以下潜在问题：</p><ul>';
+            result.errors.forEach(error => {
+                // 使用 pre 标签来更好地格式化可能包含换行的错误信息
+                html += `<li><strong>文件:</strong> ${error.file_name}<br><strong>问题:</strong> <pre>${error.error}</pre></li>`;
+            });
+            html += '</ul>';
+        } else {
+            html += '<p style="color: green;">✅ 未发现逻辑错误，数据一致性良好。</p>';
+        }
+
+        // 显示原始返回结果
+        html += '<hr style="margin: 20px 0;">';
+        html += '<h4>原始返回结果:</h4>';
+        html += `<pre class="result-json">${JSON.stringify(result, null, 2)}</pre>`;
+
+        resultContent.innerHTML = html;
+
+    } catch (error) {
+        // 捕获并显示测试过程中的任何错误
+        console.error('逻辑校验测试失败:', error);
+        resultContent.innerHTML = `<p style="color: red;">❌ 逻辑校验失败: ${error.message}</p>`;
+    }
 }
 
 // 文件拖拽上传功能
