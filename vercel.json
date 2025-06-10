@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "http://124.128.244.171:8000/$1",
+      "destination": "http://124.128.244.171:8000/api/$1",
       "has": [
         {
           "type": "header",
