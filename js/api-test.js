@@ -455,49 +455,96 @@ async function testUpload() {
 
 // 申报要素智能填写测试
 async function testSmartFill() {
-  const form = document.getElementById("smartFillForm");
-  const formData = new FormData(form);
+  const resultContainerId = "smartFillResult";
 
-  // 验证必填字段
-  const text = document.getElementById("text").value.trim();
-  const splitRules = document.getElementById("split_rules").value.trim();
-  const sbysRequired = document.getElementById("sbysRequired").value.trim();
+  try {
+    // 从表单获取数据
+    const text = document.getElementById("text").value.trim();
+    const splitRules = document.getElementById("split_rules").value.trim();
+    const sbysRequired = document.getElementById("sbysRequired").value.trim();
 
-  if (!text || !splitRules || !sbysRequired) {
-    alert("请填写所有必填字段");
-    return;
+    // 验证必填字段
+    if (!text || !splitRules || !sbysRequired) {
+      alert("请填写所有必填字段");
+      return;
+    }
+
+    // 验证sbysRequired格式
+    if (!/^[01]+$/.test(sbysRequired)) {
+      alert("申报要素必填项标识只能包含数字0和1");
+      return;
+    }
+
+    showLoadingWithTimeout(resultContainerId);
+
+    // 准备JSON请求体
+    const requestBody = {
+      text: text,
+      split_rules: splitRules,
+      sbysRequired: sbysRequired
+    };
+
+    const endpoint = "/extract_and_fill";
+    const url = `${API_BASE_URL}${endpoint}`;
+    const authHeaders = getAuthHeaders();
+    const headers = {
+      'Content-Type': 'application/json',
+      'timestamp': authHeaders.timestamp,
+      'sign': authHeaders.sign,
+      'x-vercel-skip-middleware': '1'
+    };
+
+    // 发送带超时的fetch请求
+    const timeout = 7200000; // 2小时超时
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`请求超时 (${timeout / 1000}秒)。`));
+      }, timeout);
+    });
+
+    const fetchPromise = fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: headers,
+      body: JSON.stringify(requestBody), // 将JS对象转换为JSON字符串
+    });
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态: ${response.status}`);
+    }
+
+    const resultData = await response.json();
+    displayResult(resultContainerId, { success: true, data: resultData });
+
+  } catch (error) {
+    displayResult(resultContainerId, { success: false, error: error.message });
   }
-
-  // 验证sbysRequired格式（应该只包含0和1）
-  if (!/^[01]+$/.test(sbysRequired)) {
-    alert("申报要素必填项标识只能包含数字0和1");
-    return;
-  }
-
-  // 设置超时处理
-  showLoadingWithTimeout("smartFillResult", 7200000); // 2小时超时
-
-  const result = await callAPIWithTimeout("/api/smart-fill", formData, 7200000); // 2小时超时
-  displayResult("smartFillResult", result);
 }
 
 // 文档逻辑校验测试
 async function testVerify() {
   const form = document.getElementById("verifyForm");
   const formData = new FormData(form);
+  const resultContainerId = "verifyResult";
 
   // 验证必填字段
   const text = document.getElementById("verifyText").value.trim();
-
   if (!text) {
     alert("请填写文档内容");
     return;
   }
 
-  showLoading("verifyResult");
+  showLoadingWithTimeout(resultContainerId);
 
-  const result = await callAPI("/api/verify", formData);
-  displayResult("verifyResult", result);
+  try {
+    const endpoint = "/verify";
+    const result = await callAPIWithTimeout(endpoint, formData, resultContainerId);
+    displayResult(resultContainerId, result);
+  } catch (error) {
+    displayResult(resultContainerId, { success: false, error: error.message });
+  }
 }
 
 // 文件拖拽上传功能
