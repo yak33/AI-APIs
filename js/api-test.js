@@ -185,6 +185,7 @@ async function callAPI(endpoint, formData, method = "POST") {
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: method,
+      mode: 'cors',
       headers: headers,
       body: formData,
     });
