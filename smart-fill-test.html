@@ -19,6 +19,29 @@
 
         <div class="test-container">
             <form id="smartFillForm" class="test-form">
+                <!-- 新增：JSON数据快速填充区域 -->
+                <div class="json-quick-fill">
+                    <div class="quick-fill-header">
+                        <span class="quick-fill-icon">🚀</span>
+                        <h4>JSON数据快速填充</h4>
+                    </div>
+                    <div class="form-group">
+                        <label for="jsonData">粘贴JSON数据</label>
+                        <textarea id="jsonData" name="jsonData" placeholder='粘贴JSON数据，例如：{"sbysRequired":"11111111000","split_rules":"0:品牌类型;1:出口享惠情况;2:规格（管的外径）;3:用途;4:形状（管、空心异型材）;5:材质（铁、非合金钢、不锈钢、合金钢）;6:种类（无缝管）;7:加工方法（冷拔、冷轧、热轧等）;8:GTIN;9:CAS;10:其他;","text":"申报要素：4|0|127毫米|生产挂车车轴用|管|合金钢制|无缝管。规格型号：4]0]127毫米|生产挂车车轴用|管|合金钢制无缝管|热轧。品牌：无品牌"}' class="json-textarea"></textarea>
+                        <small class="form-hint">💡 粘贴包含sbysRequired、split_rules、text字段的JSON数据，一键自动填充下方表单</small>
+                    </div>
+                    <div class="quick-fill-actions">
+                        <button type="button" class="btn btn-primary btn-parse" onclick="parseJsonData()">
+                            <span class="btn-icon">🔄</span>
+                            解析并填充
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearJsonData()">
+                            <span class="btn-icon">🗑️</span>
+                            清空
+                        </button>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="text">申报要素描述 (必填)</label>
                     <textarea id="text" name="text" placeholder="请输入商品描述信息，例如：盛放调料的盒子，PC+ABS+PP 无型号 无牌 不享惠" required></textarea>
@@ -39,7 +62,7 @@
 
                 <div class="form-group">
                     <button type="button" class="btn btn-primary" onclick="testSmartFill()">开始智能填写</button>
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('smartFillForm').reset(); document.getElementById('smartFillResult').style.display='none'">重置表单</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetAllForms()">重置表单</button>
                     <button type="button" class="btn btn-secondary" onclick="loadExample()">加载示例数据</button>
                 </div>
             </form>
@@ -72,6 +95,19 @@
         <div class="api-info">
             <h2>使用说明</h2>
             <div class="server-info">
+                <p><strong>🚀 JSON快速填充功能（新增）:</strong></p>
+                <p>为了简化操作，现在支持直接粘贴包含所有必要字段的JSON数据，一键自动填充表单。JSON格式如下：</p>
+                <code style="display: block; margin: 10px 0; padding: 10px; background: #e8f5e8; border-radius: 4px; border-left: 4px solid #28a745;">
+{
+  "sbysRequired": "11111111000",
+  "split_rules": "0:品牌类型;1:出口享惠情况;2:规格;3:用途;4:形状;5:材质;6:种类;7:加工方法;8:GTIN;9:CAS;10:其他;",
+  "text": "申报要素：4|0|127毫米|生产挂车车轴用|管|合金钢制|无缝管。规格型号：4]0]127毫米|生产挂车车轴用|管|合金钢制无缝管|热轧。品牌：无品牌"
+}
+                </code>
+                <p style="color: #28a745; font-weight: bold;">💡 使用步骤：复制JSON数据 → 粘贴到顶部输入框 → 点击"解析并填充"按钮 → 自动填充完成！</p>
+                
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+                
                 <p><strong>申报要素描述:</strong></p>
                 <p>输入需要进行申报要素识别的商品描述文本，系统会根据文本内容智能提取相关信息。</p>
                 
@@ -113,6 +149,86 @@
             document.getElementById('text').value = '盛放调料的盒子，PC+\nABS+PP 无型号 无牌 不享惠';
             document.getElementById('split_rules').value = '0:品牌类型;1:出口享惠情况;2:用途;3:加工工艺;4:是否配定剂量;5:是否零售包装;6:成分;7:来源;8:品牌（中文或外文名称）;9:型号;10:包装规格;11:GTIN;12:CAS;13:其他;';
             document.getElementById('sbysRequired').value = '11111110000000';
+        }
+
+        // 解析JSON数据并自动填充表单
+        function parseJsonData() {
+            const jsonTextarea = document.getElementById('jsonData');
+            const jsonText = jsonTextarea.value.trim();
+            
+            if (!jsonText) {
+                alert('请先粘贴JSON数据');
+                return;
+            }
+            
+            try {
+                // 解析JSON数据
+                const jsonData = JSON.parse(jsonText);
+                
+                // 验证必要字段是否存在
+                if (!jsonData.hasOwnProperty('sbysRequired') || 
+                    !jsonData.hasOwnProperty('split_rules') || 
+                    !jsonData.hasOwnProperty('text')) {
+                    alert('JSON数据格式不正确！\n必须包含以下字段：\n- sbysRequired\n- split_rules\n- text');
+                    return;
+                }
+                
+                // 自动填充到对应的表单字段
+                document.getElementById('sbysRequired').value = jsonData.sbysRequired || '';
+                document.getElementById('split_rules').value = jsonData.split_rules || '';
+                document.getElementById('text').value = jsonData.text || '';
+                
+                // 显示成功提示
+                showSuccessMessage('JSON数据解析成功！已自动填充到下方表单字段。');
+                
+                // 可选：清空JSON输入框
+                // jsonTextarea.value = '';
+                
+            } catch (error) {
+                alert('JSON数据格式错误！\n请检查数据格式是否正确。\n\n错误信息：' + error.message);
+            }
+        }
+        
+        // 清空JSON数据输入框
+        function clearJsonData() {
+            document.getElementById('jsonData').value = '';
+        }
+        
+        // 显示成功消息
+        function showSuccessMessage(message) {
+            // 创建成功提示元素
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                z-index: 1000;
+                font-size: 14px;
+                max-width: 300px;
+            `;
+            successDiv.textContent = message;
+            
+            // 添加到页面
+            document.body.appendChild(successDiv);
+            
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 3000);
+        }
+        
+        // 增强的表单重置功能
+        function resetAllForms() {
+            document.getElementById('smartFillForm').reset();
+            document.getElementById('jsonData').value = '';
+            document.getElementById('smartFillResult').style.display = 'none';
         }
     </script>
 </body>
